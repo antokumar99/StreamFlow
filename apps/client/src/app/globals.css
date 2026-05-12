@@ -1,0 +1,162 @@
+@import "tailwindcss";
+
+/* =========================
+   STREAMFLOW GLOBAL STYLES
+   ========================= */
+
+:root {
+  --background: #0b0f19;
+  --foreground: #e5e7eb;
+
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+
+  --danger: #ef4444;
+  --success: #22c55e;
+
+  --border: #1f2937;
+  --muted: #9ca3af;
+}
+
+/* Base styles */
+html,
+body {
+  height: 100%;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI,
+    Roboto, Helvetica, Arial;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Remove default margins */
+body {
+  margin: 0;
+  padding: 0;
+}
+
+/* Links */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Input styles (important for auth + chat + meeting search) */
+input,
+textarea,
+select {
+  background-color: #111827;
+  border: 1px solid var(--border);
+  color: var(--foreground);
+  padding: 10px 12px;
+  border-radius: 8px;
+  outline: none;
+}
+
+input:focus,
+textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+}
+
+/* Button base */
+button {
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+/* Scrollbar styling (important for chat + meeting panel) */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0b0f19;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1f2937;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #374151;
+}
+
+/* Utility classes for StreamFlow */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+/* Glass effect (for meeting UI panels) */
+.glass {
+  background: rgba(17, 24, 39, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(31, 41, 55, 0.5);
+  border-radius: 12px;
+}
+
+/* Video grid helper */
+.video-grid {
+  display: grid;
+  gap: 12px;
+}
+
+/* Meeting buttons */
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: white;
+  padding: 10px 16px;
+  border-radius: 8px;
+}
+
+/* Chat bubble styles */
+.chat-bubble {
+  padding: 10px 14px;
+  border-radius: 12px;
+  max-width: 70%;
+}
+
+.chat-me {
+  background: var(--primary);
+  margin-left: auto;
+}
+
+.chat-other {
+  background: #1f2937;
+}
+
+/* Loading animation */
+@keyframes pulseGlow {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}
+
+.loading {
+  animation: pulseGlow 1.5s infinite;
+}
