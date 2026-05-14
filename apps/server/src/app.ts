@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 
+import authRoutes from "./routes/auth.routes";
+
 const app = express();
 app.use(cors(
     {
@@ -16,6 +18,8 @@ app.use(express.urlencoded({ extended: true }));
 app.get("/", (req, res) => {
     res.send("Hello from the server!");
 });
+
+app.use("/api/auth", authRoutes);
 
 app.use((err: any, req: express.Request, res: express.Response) => {
     console.error(err.stack);
