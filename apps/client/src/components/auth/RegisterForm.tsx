@@ -41,6 +41,8 @@ export default function RegisterForm() {
       );
 
       alert("Registration successful");
+      // redirect to login page
+      window.location.href = "/login";
     } catch (error) {
       console.log(error);
       alert("Registration failed");

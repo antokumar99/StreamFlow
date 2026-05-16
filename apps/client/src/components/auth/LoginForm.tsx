@@ -40,6 +40,8 @@ export default function LoginForm() {
       );
 
       alert("Login successful");
+      // redirect to home page
+      window.location.href = "/home";
     } catch (error) {
       console.log(error);
       alert("Login failed");
@@ -82,6 +84,8 @@ export default function LoginForm() {
           className="w-full"
         />
       </div>
+
+      
 
       <button
         type="submit"
