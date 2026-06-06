@@ -24,10 +24,9 @@ export default function DashboardPage() {
 
 
       setLoading(true);
-      // Simulate API call to create meeting
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      // Navigate to the newly created meeting room
-      router.push(`/meeting/${roomId}`);
+      router.push(
+        `/meeting/${newRoomId}`
+      );
     } catch (error) {
       console.error("Error creating meeting:", error);
     } finally {

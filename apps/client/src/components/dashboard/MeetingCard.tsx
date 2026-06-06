@@ -1,14 +1,22 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+
 interface MeetingCardProps {
   title: string;
   time: string;
   participants: number;
+  roomId?: string;
 }
 
 export default function MeetingCard({
   title,
   time,
   participants,
+  roomId,
 }: MeetingCardProps) {
+  const router = useRouter();
+
   return (
     <div className="glass p-5 rounded-2xl">
       <h3 className="text-xl font-semibold">
@@ -24,7 +32,17 @@ export default function MeetingCard({
           {participants} participants
         </span>
 
-        <button className="btn-primary">
+        <button
+          onClick={() => {
+            if (roomId) {
+              router.push(
+                `/meeting/${roomId}`
+              );
+            }
+          }}
+          disabled={!roomId}
+          className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           Join
         </button>
       </div>
