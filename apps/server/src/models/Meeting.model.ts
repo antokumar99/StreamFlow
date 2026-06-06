@@ -4,6 +4,7 @@ export interface IMeeting extends Document {
   roomId: string;
   hostId: mongoose.Types.ObjectId;
   participants: mongoose.Types.ObjectId[];
+  participantCount: number;
   isActive: boolean;
   startedAt: Date;
   endedAt?: Date;
@@ -29,6 +30,11 @@ const meetingSchema = new Schema<IMeeting>(
         ref: "User",
       },
     ],
+
+    participantCount: {
+      type: Number,
+      default: 0,
+    },
 
     isActive: {
       type: Boolean,
