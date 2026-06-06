@@ -19,17 +19,17 @@ export default function VideoPlayer({
     useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    if (
-      videoRef.current &&
-      stream
-    ) {
-      console.log(
-        "Attaching stream"
-      );
+    if (!videoRef.current) return;
 
+    if (stream) {
       videoRef.current.srcObject =
         stream;
+
+      return;
     }
+
+    videoRef.current.srcObject =
+      null;
   }, [stream]);
 
   return (
