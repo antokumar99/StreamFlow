@@ -32,6 +32,12 @@ export default function DashboardSidebar() {
         >
           Chat
         </Link>
+        <Link
+          href="/home"
+          className="block glass px-4 py-3 hover:bg-gray-800 transition"
+        >
+          Home
+        </Link>
 
         <Link
           href="/settings"
