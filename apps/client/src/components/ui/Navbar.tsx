@@ -28,10 +28,24 @@ export default function Navbar() {
       {/* LOGO */}
 
       <Link
-        href="/"
+        href="/home"
         className="text-2xl font-bold"
       >
+<div className="flex items-center gap-3">
+  <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-linear-to-br from-indigo-600 via-cyan-600 to-indigo-600 shadow-lg">
+    <span className="text-white font-bold text-lg">S</span>
+
+    <div className="absolute -right-1 -top-1 w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
+  </div>
+
+  <div>
+    <h1 className="text-2xl font-extrabold tracking-tight">
+      <span className="bg-linear-to-r from-indigo-500 via-purple-500 to-cyan-400 bg-clip-text text-transparent">
         StreamFlow
+      </span>
+    </h1>
+  </div>
+</div>
       </Link>
 
       {/* RIGHT SECTION */}
@@ -70,6 +84,12 @@ export default function Navbar() {
                 </p>
               </div>
             </div>
+            <button 
+              onClick={() => router.push("/dashboard")}
+              className="glass px-4 py-2 rounded-xl"
+            >
+              Dashboard
+            </button>
 
             <button
               onClick={

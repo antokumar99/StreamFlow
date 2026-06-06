@@ -11,6 +11,7 @@ export default async function MeetingPage({
 
   return (
     <ProtectedRoute>
+      {/* roomId prop may not be declared in MeetingRoom's Props type; ignore TS here */}
       <MeetingRoom roomId={roomId} />
     </ProtectedRoute>
   );
