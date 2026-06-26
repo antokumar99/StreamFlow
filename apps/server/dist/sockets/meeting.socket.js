@@ -46,9 +46,27 @@ const registerMeetingSocket = (io, socket) => {
     /* =========================
        JOIN ROOM
     ========================= */
-    socket.on("join-meeting", async (roomId) => {
+    socket.on("join-meeting", async (payload) => {
+        const roomId = typeof payload === "string"
+            ? payload
+            : payload.roomId;
+        const callType = typeof payload === "string"
+            ? "video"
+            : payload.callType === "audio"
+                ? "audio"
+                : "video";
         if (!roomId)
             return;
+        const existingMeeting = await Meeting_model_1.default.findOne({
+            roomId,
+        }).select("isActive endedAt");
+        if (existingMeeting?.endedAt &&
+            !existingMeeting.isActive) {
+            socket.emit("meeting-ended", {
+                roomId,
+            });
+            return;
+        }
         console.log(`${socket.user?.name} joined ${roomId}`);
         /* ======================
            ROOM INIT
@@ -81,6 +99,7 @@ const registerMeetingSocket = (io, socket) => {
                     isActive: true,
                     endedAt: null,
                     participantCount: rooms[roomId].length,
+                    callType,
                 },
                 $setOnInsert: {
                     roomId,
@@ -117,6 +136,34 @@ const registerMeetingSocket = (io, socket) => {
            PARTICIPANT COUNT
         ====================== */
         io.to(roomId).emit("participant-count", rooms[roomId].length);
+    });
+    socket.on("whiteboard-draw", ({ roomId, stroke, }) => {
+        if (!roomId || !stroke)
+            return;
+        socket
+            .to(roomId)
+            .emit("whiteboard-draw", stroke);
+    });
+    socket.on("meeting-chat-message", ({ roomId, message, }) => {
+        const value = String(message || "").trim();
+        if (!roomId || !value)
+            return;
+        io.to(roomId).emit("meeting-chat-message", {
+            id: `${socket.id}-${Date.now()}`,
+            roomId,
+            message: value,
+            senderId: socket.user?._id,
+            senderName: socket.user?.name ||
+                "Participant",
+            createdAt: new Date().toISOString(),
+        });
+    });
+    socket.on("whiteboard-clear", (roomId) => {
+        if (!roomId)
+            return;
+        socket
+            .to(roomId)
+            .emit("whiteboard-clear");
     });
     /* =========================
        LEAVE ROOM

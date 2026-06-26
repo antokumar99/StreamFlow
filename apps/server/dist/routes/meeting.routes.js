@@ -8,4 +8,7 @@ const meeting_controller_1 = require("../controllers/meeting.controller");
 const auth_middleware_1 = require("../middlewares/auth.middleware");
 const router = express_1.default.Router();
 router.get("/", auth_middleware_1.protect, meeting_controller_1.getMyMeetings);
+router.post("/", auth_middleware_1.protect, meeting_controller_1.createMeeting);
+router.get("/stats", auth_middleware_1.protect, meeting_controller_1.getMeetingStats);
+router.post("/invite", auth_middleware_1.protect, meeting_controller_1.inviteToMeeting);
 exports.default = router;

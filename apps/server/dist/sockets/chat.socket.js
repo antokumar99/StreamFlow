@@ -61,6 +61,7 @@ const registerChatSocket = (io, socket) => {
                     userId: recipientId,
                     title: "New message",
                     message: `${socket.user?.name} sent you a ${type} message`,
+                    type: "message",
                 });
                 io.to(`user:${recipientId.toString()}`).emit("notification", notification);
                 io.to(`user:${recipientId.toString()}`).emit("receive-chat-message", serialized);

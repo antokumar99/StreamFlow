@@ -7,6 +7,7 @@ exports.io = void 0;
 const http_1 = __importDefault(require("http"));
 const socket_io_1 = require("socket.io");
 const app_1 = __importDefault(require("../app"));
+const cors_1 = require("./cors");
 const socket_middleware_1 = require("../middlewares/socket.middleware");
 const chat_socket_1 = require("../sockets/chat.socket");
 const meeting_socket_1 = require("../sockets/meeting.socket");
@@ -17,7 +18,7 @@ const server = http_1.default.createServer(app_1.default);
 ========================================= */
 const io = new socket_io_1.Server(server, {
     cors: {
-        origin: process.env.CLIENT_URL || "http://localhost:3000",
+        origin: cors_1.allowedOrigins,
         credentials: true,
     },
     transports: [
@@ -28,6 +29,7 @@ const io = new socket_io_1.Server(server, {
     pingInterval: 25000,
 });
 exports.io = io;
+app_1.default.set("io", io);
 /* =========================================
    SOCKET AUTH MIDDLEWARE
 ========================================= */

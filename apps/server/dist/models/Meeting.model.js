@@ -45,6 +45,11 @@ const meetingSchema = new mongoose_1.Schema({
         ref: "User",
         required: true,
     },
+    callType: {
+        type: String,
+        enum: ["video", "audio"],
+        default: "video",
+    },
     participants: [
         {
             type: mongoose_1.Schema.Types.ObjectId,
