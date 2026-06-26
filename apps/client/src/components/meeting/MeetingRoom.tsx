@@ -67,7 +67,6 @@ export default function MeetingRoom({
   useWebRTC(
     roomId,
     stream,
-    callType
   );
 
   useEffect(() => {
@@ -159,7 +158,7 @@ export default function MeetingRoom({
 
       <div className="fixed bottom-24 right-6 z-40">
         {panelOpen ? (
-          <div className="flex h-[560px] w-[340px] max-w-[calc(100vw-48px)] flex-col gap-3 rounded-lg border border-gray-800 bg-[#0b0f19] p-3 shadow-2xl">
+          <div className="flex h-140 w-85 max-w-[calc(100vw-48px)] flex-col gap-3 rounded-lg border border-gray-800 bg-[#0b0f19] p-3 shadow-2xl">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold">
                 Meeting Tools
