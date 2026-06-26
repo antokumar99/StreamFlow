@@ -1,10 +1,21 @@
 "use client";
 
 import {
+  useEffect,
+  useState,
+} from "react";
+import {
   useRouter,
 } from "next/navigation";
 
 import { useAuth } from "@/hooks/useAuth";
+import api from "@/lib/axios";
+import { socket } from "@/lib/socket";
+
+interface NotificationItem {
+  _id: string;
+  isRead: boolean;
+}
 
 export default function DashboardNavbar() {
   const router = useRouter();
@@ -13,6 +24,10 @@ export default function DashboardNavbar() {
     user,
     logout,
   } = useAuth();
+  const [
+    unreadCount,
+    setUnreadCount,
+  ] = useState(0);
 
   const handleLogout =
     () => {
@@ -20,6 +35,54 @@ export default function DashboardNavbar() {
 
       router.push("/");
     };
+
+  useEffect(() => {
+    if (!user) return;
+
+    const loadNotifications =
+      async () => {
+        const response =
+          await api.get(
+            "/notifications"
+          );
+        const notifications =
+          response.data
+            .notifications || [];
+
+        setUnreadCount(
+          notifications.filter(
+            (
+              notification: NotificationItem
+            ) =>
+              !notification.isRead
+          ).length
+        );
+      };
+
+    loadNotifications();
+
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    const handleNotification = () => {
+      setUnreadCount(
+        (current) => current + 1
+      );
+    };
+
+    socket.on(
+      "notification",
+      handleNotification
+    );
+
+    return () => {
+      socket.off(
+        "notification",
+        handleNotification
+      );
+    };
+  }, [user]);
 
   return (
     <nav className="w-full flex items-center justify-between px-8 py-5 border-b border-gray-800 bg-[#0b0f19] text-white">
@@ -50,9 +113,14 @@ export default function DashboardNavbar() {
             </div>
             <button 
               onClick={() => router.push("/notifications")}
-              className="glass px-4 py-2 rounded-xl"
+              className="glass relative px-4 py-2 rounded-xl"
             >
               Notification
+              {unreadCount > 0 ? (
+                <span className="absolute -right-2 -top-2 rounded-full bg-red-600 px-2 py-0.5 text-xs">
+                  {unreadCount}
+                </span>
+              ) : null}
             </button>
 
             <button
