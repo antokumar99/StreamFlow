@@ -1,7 +1,11 @@
 import { io } from "socket.io-client";
+import {
+  getAuthToken,
+} from "./authToken";
 
 export const socket = io(
-  process.env.NEXT_PUBLIC_SOCKET_URL!,
+    process.env.NEXT_PUBLIC_SOCKET_URL ||
+    "http://localhost:4000",
   {
     autoConnect: false,
 
@@ -13,9 +17,7 @@ export const socket = io(
 
     auth: (cb) => {
       const token =
-        localStorage.getItem(
-          "token"
-        );
+        getAuthToken();
 
       cb({
         token,

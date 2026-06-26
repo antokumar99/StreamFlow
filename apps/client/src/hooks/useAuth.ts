@@ -5,6 +5,9 @@ import {
 } from "react";
 
 import axios from "@/lib/axios";
+import {
+  getAuthToken,
+} from "@/lib/authToken";
 
 import { useAuthStore } from "@/store/authStore";
 
@@ -21,9 +24,7 @@ export const useAuth = () => {
       async () => {
         try {
           const token =
-            localStorage.getItem(
-              "token"
-            );
+            getAuthToken();
 
           if (!token) {
             logout();

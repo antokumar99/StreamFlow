@@ -6,7 +6,15 @@ import {
   useState,
 } from "react";
 
-export const useMedia = () => {
+interface UseMediaOptions {
+  initialVideo?: boolean;
+}
+
+export const useMedia = (
+  options: UseMediaOptions = {}
+) => {
+  const initialVideo =
+    options.initialVideo ?? true;
   const cameraStreamRef =
     useRef<MediaStream | null>(
       null
@@ -21,14 +29,14 @@ export const useMedia = () => {
     useState(true);
 
   const [videoEnabled, setVideoEnabled] =
-    useState(true);
+    useState(initialVideo);
 
     useEffect(() => {
     const getMedia = async () => {
       try {
         const mediaStream = await navigator.mediaDevices.getUserMedia(
           {
-            video: true,
+            video: initialVideo,
             audio: true,
           }
         );
@@ -43,7 +51,7 @@ export const useMedia = () => {
     };
 
     getMedia();
-    }, []);
+    }, [initialVideo]);
 
   const toggleAudio = () => {
     if (!stream) return;
@@ -63,12 +71,45 @@ export const useMedia = () => {
   const toggleVideo = () => {
     if (!stream) return;
 
-    stream
-      .getVideoTracks()
-      .forEach((track) => {
-        track.enabled =
-          !track.enabled;
-      });
+    const videoTracks =
+      stream.getVideoTracks();
+
+    if (
+      videoTracks.length === 0 &&
+      !videoEnabled
+    ) {
+      navigator.mediaDevices
+        .getUserMedia({
+          video: true,
+        })
+        .then((videoStream) => {
+          const videoTrack =
+            videoStream.getVideoTracks()[0];
+
+          if (!videoTrack) return;
+
+          const nextStream =
+            new MediaStream([
+              ...stream.getAudioTracks(),
+              videoTrack,
+            ]);
+
+          cameraStreamRef.current =
+            nextStream;
+          setStream(nextStream);
+          setVideoEnabled(true);
+        })
+        .catch((error) =>
+          console.log(error)
+        );
+
+      return;
+    }
+
+    videoTracks.forEach((track) => {
+      track.enabled =
+        !track.enabled;
+    });
 
     setVideoEnabled(
       !videoEnabled
@@ -115,6 +156,50 @@ export const useMedia = () => {
       }
     };
 
+  const shareCanvasStream = (
+    canvas: HTMLCanvasElement
+  ) => {
+    const canvasWithCapture =
+      canvas as HTMLCanvasElement & {
+        captureStream?: (
+          frameRate?: number
+        ) => MediaStream;
+      };
+
+    const canvasStream =
+      canvasWithCapture.captureStream?.(30);
+
+    const canvasTrack =
+      canvasStream?.getVideoTracks()[0];
+
+    if (!canvasTrack) {
+      return;
+    }
+
+    const audioTracks =
+      cameraStreamRef.current?.getAudioTracks() ||
+      stream?.getAudioTracks() ||
+      [];
+
+    const sharedStream =
+      new MediaStream([
+        canvasTrack,
+        ...audioTracks,
+      ]);
+
+    canvasTrack.onended =
+      () => {
+        if (cameraStreamRef.current) {
+          setStream(
+            cameraStreamRef.current
+          );
+        }
+      };
+
+    setStream(sharedStream);
+    setVideoEnabled(true);
+  };
+
   return {
     stream,
     audioEnabled,
@@ -122,5 +207,6 @@ export const useMedia = () => {
     toggleAudio,
     toggleVideo,
     startScreenShare,
+    shareCanvasStream,
   };
 };

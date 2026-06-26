@@ -1,4 +1,8 @@
 import {create} from 'zustand';
+import {
+  clearAuthToken,
+  setAuthToken,
+} from "@/lib/authToken";
 
 interface User{
     _id: string;
@@ -29,10 +33,7 @@ export const useAuthStore =
       user,
       token
     ) => {
-      localStorage.setItem(
-        "token",
-        token
-      );
+      setAuthToken(token);
 
       set({
         user,
@@ -42,9 +43,7 @@ export const useAuthStore =
     },
 
     logout: () => {
-      localStorage.removeItem(
-        "token"
-      );
+      clearAuthToken();
 
       set({
         user: null,
