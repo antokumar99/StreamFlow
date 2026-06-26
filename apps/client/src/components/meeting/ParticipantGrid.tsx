@@ -6,7 +6,6 @@ import {
 } from "react";
 
 import { useAuthStore } from "@/store/authStore";
-
 import { useMeetingStore } from "@/store/meetingStore";
 
 import VideoPlayer from "../video/VideoPlayer";
@@ -24,32 +23,81 @@ interface Tile {
 
 interface VideoTileProps {
   tile: Tile;
-  isFocused?: boolean;
-  isMinimized?: boolean;
+  selected?: boolean;
+  variant: "gallery" | "stage" | "thumb";
   onSelect: () => void;
-  onToggleMinimize?: () => void;
 }
+
+const getInitials = (name: string) =>
+  name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+
+const getGalleryColumns = (
+  count: number
+) => {
+  if (count <= 1) {
+    return "grid-cols-1";
+  }
+
+  if (count === 2) {
+    return "grid-cols-1 md:grid-cols-2";
+  }
+
+  if (count <= 4) {
+    return "grid-cols-1 sm:grid-cols-2";
+  }
+
+  if (count <= 6) {
+    return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
+  }
+
+  if (count <= 9) {
+    return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
+  }
+
+  return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4";
+};
 
 function VideoTile({
   tile,
-  isFocused,
-  isMinimized,
+  selected,
+  variant,
   onSelect,
-  onToggleMinimize,
 }: VideoTileProps) {
+  const hasVideo =
+    Boolean(
+      tile.stream
+        ?.getVideoTracks()
+        .some(
+          (track) =>
+            track.readyState === "live"
+        )
+    );
+
   return (
     <button
       type="button"
       onClick={onSelect}
       className={[
-        "group relative overflow-hidden border bg-black text-left transition",
+        "group relative min-h-0 overflow-hidden bg-black text-left shadow-lg transition",
         "focus:outline-none focus:ring-2 focus:ring-indigo-400",
-        isFocused
-          ? "h-full rounded-xl border-indigo-400"
-          : "aspect-video rounded-lg border-gray-700 hover:border-indigo-400",
-        isMinimized
-          ? "max-w-45"
+        variant === "gallery"
+          ? "h-full rounded-lg border"
           : "",
+        variant === "stage"
+          ? "h-full rounded-lg border"
+          : "",
+        variant === "thumb"
+          ? "aspect-video rounded-md border"
+          : "",
+        selected
+          ? "border-indigo-400 ring-2 ring-indigo-400/50"
+          : "border-gray-700 hover:border-gray-500",
       ].join(" ")}
     >
       <VideoPlayer
@@ -57,42 +105,35 @@ function VideoTile({
         muted={tile.isLocal}
       />
 
-      {!tile.stream ? (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#111827] text-sm text-gray-400">
-          Waiting for video
+      {!hasVideo ? (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#111827]">
+          <div
+            className={[
+              "flex items-center justify-center rounded-full bg-indigo-500/20 font-semibold text-indigo-100",
+              variant === "thumb"
+                ? "h-12 w-12 text-base"
+                : "h-24 w-24 text-3xl",
+            ].join(" ")}
+          >
+            {getInitials(tile.name)}
+          </div>
+          {variant !== "thumb" ? (
+            <p className="mt-4 text-sm text-gray-400">
+              Camera off
+            </p>
+          ) : null}
         </div>
       ) : null}
 
-      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-black/65 px-3 py-2">
+      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-black/70 px-3 py-2">
         <span className="min-w-0 truncate text-sm font-medium text-white">
           {tile.name}
           {tile.isLocal ? " (You)" : ""}
         </span>
 
-        {tile.isLocal &&
-        onToggleMinimize ? (
-          <span
-            role="button"
-            tabIndex={0}
-            onClick={(event) => {
-              event.stopPropagation();
-              onToggleMinimize();
-            }}
-            onKeyDown={(event) => {
-              if (
-                event.key === "Enter" ||
-                event.key === " "
-              ) {
-                event.preventDefault();
-                event.stopPropagation();
-                onToggleMinimize();
-              }
-            }}
-            className="shrink-0 rounded bg-white/15 px-2 py-1 text-xs text-white hover:bg-white/25"
-          >
-            {isMinimized
-              ? "Restore"
-              : "Minimize"}
+        {selected ? (
+          <span className="shrink-0 rounded bg-indigo-500 px-2 py-0.5 text-xs text-white">
+            Focus
           </span>
         ) : null}
       </div>
@@ -105,19 +146,10 @@ export default function ParticipantGrid({
 }: Props) {
   const { participants } =
     useMeetingStore();
-
   const { user } =
     useAuthStore();
-
-  const [
-    focusedId,
-    setFocusedId,
-  ] = useState("local");
-
-  const [
-    isLocalMinimized,
-    setIsLocalMinimized,
-  ] = useState(false);
+  const [focusedId, setFocusedId] =
+    useState<string | null>(null);
 
   const tiles = useMemo<Tile[]>(
     () => [
@@ -149,121 +181,96 @@ export default function ParticipantGrid({
   );
 
   const focusedTile =
-    tiles.find(
-      (tile) =>
-        tile.id === focusedId
-    ) || tiles[0];
+    focusedId
+      ? tiles.find(
+          (tile) =>
+            tile.id === focusedId
+        )
+      : null;
 
-  const otherTiles =
-    tiles.filter(
-      (tile) =>
-        tile.id !== focusedTile.id
-    );
-
-  const handleSelect = (
-    tile: Tile
-  ) => {
-    setFocusedId(tile.id);
-
-    if (tile.isLocal) {
-      setIsLocalMinimized(false);
-    }
-  };
-
-  const handleToggleLocalMinimize =
-    () => {
-      setIsLocalMinimized(
-        (current) => {
-          const next = !current;
-
-          if (
-            next &&
-            focusedId === "local"
-          ) {
-            const firstRemote =
-              tiles.find(
-                (tile) =>
-                  tile.id !==
-                  "local"
-              );
-
-            if (firstRemote) {
-              setFocusedId(
-                firstRemote.id
-              );
-            }
-          }
-
-          return next;
-        }
-      );
-    };
-
-  if (tiles.length === 1) {
+  if (!focusedTile) {
     return (
-      <div className="flex-1 min-h-0">
-        <VideoTile
-          tile={tiles[0]}
-          isFocused
-          isMinimized={
-            isLocalMinimized
-          }
-          onSelect={() =>
-            handleSelect(tiles[0])
-          }
-          onToggleMinimize={
-            handleToggleLocalMinimize
-          }
-        />
-      </div>
+      <section className="flex min-h-0 flex-1 flex-col rounded-lg border border-gray-800 bg-[#111827] p-3">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-200">
+            Gallery View
+          </h2>
+          <span className="rounded bg-white/10 px-2 py-1 text-xs text-gray-300">
+            {tiles.length} participants
+          </span>
+        </div>
+
+        <div
+          className={[
+            "grid min-h-[58vh] flex-1 gap-3",
+            getGalleryColumns(
+              tiles.length
+            ),
+          ].join(" ")}
+        >
+          {tiles.map((tile) => (
+            <VideoTile
+              key={tile.id}
+              tile={tile}
+              variant="gallery"
+              onSelect={() =>
+                setFocusedId(tile.id)
+              }
+            />
+          ))}
+        </div>
+      </section>
     );
   }
 
   return (
-    <div className="flex flex-1 min-h-0 flex-col gap-4">
-      <div className="min-h-65 flex-1">
+    <section className="flex min-h-0 flex-1 flex-col gap-4">
+      <div className="flex min-h-[58vh] flex-1">
         <VideoTile
           tile={focusedTile}
-          isFocused
-          isMinimized={
-            focusedTile.isLocal &&
-            isLocalMinimized
-          }
+          selected
+          variant="stage"
           onSelect={() =>
-            handleSelect(
-              focusedTile
+            setFocusedId(
+              focusedTile.id
             )
-          }
-          onToggleMinimize={
-            focusedTile.isLocal
-              ? handleToggleLocalMinimize
-              : undefined
           }
         />
       </div>
 
-      <div className="grid max-h-[34vh] grid-cols-2 gap-3 overflow-y-auto pr-1 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-        {otherTiles.map(
-          (tile) => (
+      <div className="rounded-lg border border-gray-800 bg-[#111827] p-3">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-200">
+            Participants
+          </h2>
+
+          <button
+            onClick={() =>
+              setFocusedId(null)
+            }
+            className="rounded bg-white/10 px-3 py-1 text-xs text-gray-200 hover:bg-white/20"
+          >
+            Gallery
+          </button>
+        </div>
+
+        <div className="grid max-h-[22vh] grid-cols-2 gap-3 overflow-y-auto pr-1 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7">
+          {tiles.map((tile) => (
             <VideoTile
               key={tile.id}
               tile={tile}
-              isMinimized={
-                tile.isLocal &&
-                isLocalMinimized
+              selected={
+                tile.id ===
+                focusedTile.id
               }
+              variant="thumb"
               onSelect={() =>
-                handleSelect(tile)
-              }
-              onToggleMinimize={
-                tile.isLocal
-                  ? handleToggleLocalMinimize
-                  : undefined
+                setFocusedId(tile.id)
               }
             />
-          )
-        )}
+          ))}
+        </div>
       </div>
-    </div>
+    </section>
   );
 }

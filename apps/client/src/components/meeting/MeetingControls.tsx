@@ -7,6 +7,8 @@ interface Props {
 
   startScreenShare: () => void;
   leaveMeeting: () => void;
+  toggleWhiteboard: () => void;
+  whiteboardOpen: boolean;
 }
 
 export default function MeetingControls({
@@ -16,6 +18,8 @@ export default function MeetingControls({
   toggleVideo,
   startScreenShare,
   leaveMeeting,
+  toggleWhiteboard,
+  whiteboardOpen,
 }: Props) {
   return (
     <div className="flex items-center justify-center gap-4 mt-6">
@@ -42,6 +46,15 @@ export default function MeetingControls({
         className="glass px-5 py-3 rounded-xl"
       >
         Share Screen
+      </button>
+
+      <button
+        onClick={toggleWhiteboard}
+        className="glass px-5 py-3 rounded-xl"
+      >
+        {whiteboardOpen
+          ? "Hide Whiteboard"
+          : "Whiteboard"}
       </button>
 
       <button
