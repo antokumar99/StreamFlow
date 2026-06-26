@@ -2,8 +2,11 @@
 
 import { useState } from "react";
 import api from "@/lib/axios";
+import { useAuthStore } from "@/store/authStore";
 
 export default function RegisterForm() {
+  const { setAuth } =
+    useAuthStore();
   const [loading, setLoading] =
     useState(false);
 
@@ -35,8 +38,8 @@ export default function RegisterForm() {
         formData
       );
 
-      localStorage.setItem(
-        "token",
+      setAuth(
+        res.data.user,
         res.data.token
       );
 
