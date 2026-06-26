@@ -48,6 +48,24 @@ const notificationSchema = new mongoose_1.Schema({
         type: String,
         required: true,
     },
+    type: {
+        type: String,
+        enum: ["message", "meeting_invite"],
+        default: "message",
+    },
+    data: {
+        roomId: String,
+        callType: {
+            type: String,
+            enum: ["video", "audio"],
+        },
+        inviteUrl: String,
+        fromUserId: {
+            type: mongoose_1.Schema.Types.ObjectId,
+            ref: "User",
+        },
+        fromName: String,
+    },
     isRead: {
         type: Boolean,
         default: false,

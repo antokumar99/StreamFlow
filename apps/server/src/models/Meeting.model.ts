@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IMeeting extends Document {
   roomId: string;
+  callType: "video" | "audio";
   hostId: mongoose.Types.ObjectId;
   participants: mongoose.Types.ObjectId[];
   participantCount: number;
@@ -22,6 +23,12 @@ const meetingSchema = new Schema<IMeeting>(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
+    },
+
+    callType: {
+      type: String,
+      enum: ["video", "audio"],
+      default: "video",
     },
 
     participants: [

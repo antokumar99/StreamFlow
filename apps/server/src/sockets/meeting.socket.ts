@@ -10,6 +10,16 @@ interface MeetingParticipant {
   name?: string;
 }
 
+interface JoinMeetingPayload {
+  roomId: string;
+  callType?: "video" | "audio";
+}
+
+interface MeetingChatPayload {
+  roomId: string;
+  message: string;
+}
+
 const rooms: Record<string, MeetingParticipant[]> = {};
 
 const removeParticipantFromRoom = (
@@ -97,9 +107,41 @@ export const registerMeetingSocket =
     socket.on(
       "join-meeting",
       async (
-        roomId: string
+        payload: string | JoinMeetingPayload
       ) => {
+        const roomId =
+          typeof payload === "string"
+            ? payload
+            : payload.roomId;
+        const callType =
+          typeof payload === "string"
+            ? "video"
+            : payload.callType === "audio"
+              ? "audio"
+              : "video";
+
         if (!roomId) return;
+
+        const existingMeeting =
+          await Meeting.findOne({
+            roomId,
+          }).select(
+            "isActive endedAt"
+          );
+
+        if (
+          existingMeeting?.endedAt &&
+          !existingMeeting.isActive
+        ) {
+          socket.emit(
+            "meeting-ended",
+            {
+              roomId,
+            }
+          );
+
+          return;
+        }
 
         console.log(
           `${socket.user?.name} joined ${roomId}`
@@ -163,6 +205,7 @@ export const registerMeetingSocket =
                 endedAt: null,
                 participantCount:
                   rooms[roomId].length,
+                callType,
               },
 
               $setOnInsert: {
@@ -228,6 +271,68 @@ export const registerMeetingSocket =
           "participant-count",
           rooms[roomId].length
         );
+      }
+    );
+
+    socket.on(
+      "whiteboard-draw",
+      ({
+        roomId,
+        stroke,
+      }: {
+        roomId: string;
+        stroke: unknown;
+      }) => {
+        if (!roomId || !stroke) return;
+
+        socket
+          .to(roomId)
+          .emit(
+            "whiteboard-draw",
+            stroke
+          );
+      }
+    );
+
+    socket.on(
+      "meeting-chat-message",
+      ({
+        roomId,
+        message,
+      }: MeetingChatPayload) => {
+        const value =
+          String(message || "").trim();
+
+        if (!roomId || !value) return;
+
+        io.to(roomId).emit(
+          "meeting-chat-message",
+          {
+            id: `${socket.id}-${Date.now()}`,
+            roomId,
+            message: value,
+            senderId:
+              socket.user?._id,
+            senderName:
+              socket.user?.name ||
+              "Participant",
+            createdAt:
+              new Date().toISOString(),
+          }
+        );
+      }
+    );
+
+    socket.on(
+      "whiteboard-clear",
+      (roomId: string) => {
+        if (!roomId) return;
+
+        socket
+          .to(roomId)
+          .emit(
+            "whiteboard-clear"
+          );
       }
     );
 

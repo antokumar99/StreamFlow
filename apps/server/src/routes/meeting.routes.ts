@@ -1,6 +1,11 @@
 import express from "express";
 
-import { getMyMeetings } from "../controllers/meeting.controller";
+import {
+  createMeeting,
+  getMeetingStats,
+  getMyMeetings,
+  inviteToMeeting,
+} from "../controllers/meeting.controller";
 
 import { protect } from "../middlewares/auth.middleware";
 
@@ -10,6 +15,24 @@ router.get(
   "/",
   protect,
   getMyMeetings
+);
+
+router.post(
+  "/",
+  protect,
+  createMeeting
+);
+
+router.get(
+  "/stats",
+  protect,
+  getMeetingStats
+);
+
+router.post(
+  "/invite",
+  protect,
+  inviteToMeeting
 );
 
 export default router;
