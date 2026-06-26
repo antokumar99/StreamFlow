@@ -2,17 +2,14 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 
+import { corsOptions } from "./config/cors";
 import authRoutes from "./routes/auth.routes";
 import chatRoutes from "./routes/chat.routes";
 import meetingRoutes from "./routes/meeting.routes";
+import notificationRoutes from "./routes/notification.routes";
 
 const app = express();
-app.use(cors(
-    {
-        origin: process.env.CLIENT_URL || "http://localhost:3000",
-        credentials: true,
-    }
-));
+app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(
   express.json({
@@ -33,6 +30,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/chats", chatRoutes);
 app.use("/api/meetings", meetingRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 app.use((err: any, req: express.Request, res: express.Response) => {
     console.error(err.stack);

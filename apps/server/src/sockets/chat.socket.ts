@@ -137,6 +137,7 @@ export const registerChatSocket =
                       "New message",
                     message:
                       `${socket.user?.name} sent you a ${type} message`,
+                    type: "message",
                   });
 
                 io.to(

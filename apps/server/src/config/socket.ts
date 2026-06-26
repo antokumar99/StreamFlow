@@ -4,6 +4,7 @@ import { Server } from "socket.io";
 
 import app from "../app";
 
+import { allowedOrigins } from "./cors";
 import { socketAuthMiddleware } from "../middlewares/socket.middleware";
 
 import { registerChatSocket } from "../sockets/chat.socket";
@@ -20,8 +21,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin:
-      process.env.CLIENT_URL || "http://localhost:3000",
+    origin: allowedOrigins,
 
     credentials: true,
   },
@@ -35,6 +35,8 @@ const io = new Server(server, {
 
   pingInterval: 25000,
 });
+
+app.set("io", io);
 
 /* =========================================
    SOCKET AUTH MIDDLEWARE
