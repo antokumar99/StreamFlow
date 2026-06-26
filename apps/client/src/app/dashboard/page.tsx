@@ -6,7 +6,11 @@ import RecentMeetings from "@/components/dashboard/RecentMeetings";
 
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import {
+  useRef,
+  useState,
+} from "react";
+import api from "@/lib/axios";
 
 
 
@@ -16,16 +20,32 @@ export default function DashboardPage() {
   const [loading, setLoading] =
     useState(false);
   const [roomId, setRoomId] = useState("");
+  const joinInputRef =
+    useRef<HTMLInputElement | null>(
+      null
+    );
 
-  const handleCreateMeeting = async () => {
+  const handleCreateMeeting = async (
+    callType: "video" | "audio" = "video"
+  ) => {
     try {
-      const newRoomId = crypto.randomUUID();
-      setRoomId(newRoomId);
-
-
       setLoading(true);
+      const response =
+        await api.post(
+          "/meetings",
+          {
+            callType,
+          }
+        );
+      const newRoomId =
+        response.data.meeting.roomId;
+
       router.push(
-        `/meeting/${newRoomId}`
+        `/meeting/${newRoomId}${
+          callType === "audio"
+            ? "?type=audio"
+            : ""
+        }`
       );
     } catch (error) {
       console.error("Error creating meeting:", error);
@@ -35,11 +55,22 @@ export default function DashboardPage() {
   };
 
   const joinMeeting = () => {
-    if (!roomId.trim()) {
+    const value =
+      roomId.trim();
+
+    if (!value) {
       alert("Please enter a valid Room ID");
       return;
     }
-    router.push(`/meeting/${roomId}`);
+
+    const roomFromLink =
+      value.match(
+        /\/meeting\/([^/?#]+)/
+      )?.[1];
+
+    router.push(
+      `/meeting/${roomFromLink || value}`
+    );
   };
 
   return (
@@ -58,7 +89,11 @@ export default function DashboardPage() {
 
         <div className="mt-4 flex items-center space-x-4">
           <button
-            onClick={handleCreateMeeting}
+            onClick={() =>
+              handleCreateMeeting(
+                "video"
+              )
+            }
             className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-400 transition">
             {loading ? "Creating..." : "New Meeting"}
           </button>
@@ -67,6 +102,7 @@ export default function DashboardPage() {
             type="text"
             placeholder="Enter Room ID to Join"
             value={roomId}
+            ref={joinInputRef}
             onChange={(e) => setRoomId(e.target.value)}
             className="mt-4 p-2 border rounded w-full max-w-sm"
           />  
@@ -83,7 +119,21 @@ export default function DashboardPage() {
         <DashboardStats />
 
       {/* Quick Actions */}
-      <QuickActions />
+      <QuickActions
+        onCreateVideo={() =>
+          handleCreateMeeting(
+            "video"
+          )
+        }
+        onCreateAudio={() =>
+          handleCreateMeeting(
+            "audio"
+          )
+        }
+        onFocusJoin={() =>
+          joinInputRef.current?.focus()
+        }
+      />
 
       {/* Meetings */}
       <RecentMeetings />

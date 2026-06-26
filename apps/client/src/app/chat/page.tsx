@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
+import Image from "next/image";
 
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import api from "@/lib/axios";
@@ -69,6 +70,26 @@ const readFileAsDataUrl = (
       );
     }
   );
+
+const formatMessageTime = (
+  value: string
+) =>
+  new Intl.DateTimeFormat(
+    undefined,
+    {
+      hour: "numeric",
+      minute: "2-digit",
+    }
+  ).format(new Date(value));
+
+const getInitials = (name = "?") =>
+  name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
 
 export default function ChatPage() {
   const { user } =
@@ -595,9 +616,14 @@ export default function ChatPage() {
         <div className="grid h-[calc(100vh-48px)] grid-cols-1 gap-4 lg:grid-cols-[340px_1fr]">
           <aside className="flex min-h-0 flex-col rounded-lg border border-gray-800 bg-[#111827]">
             <div className="border-b border-gray-800 p-4">
-              <h1 className="text-2xl font-semibold">
-                Chat
-              </h1>
+              <div>
+                <h1 className="text-2xl font-semibold">
+                  Messages
+                </h1>
+                <p className="mt-1 text-sm text-gray-400">
+                  Direct and group chats
+                </p>
+              </div>
 
               <input
                 value={search}
@@ -695,24 +721,33 @@ export default function ChatPage() {
                       )
                     }
                     className={[
-                      "mb-2 w-full rounded-lg border p-3 text-left transition",
+                      "mb-2 flex w-full items-center gap-3 rounded-lg border p-3 text-left transition",
                       activeConversationId ===
                       conversation._id
                         ? "border-indigo-400 bg-indigo-500/15"
                         : "border-gray-800 bg-white/5 hover:border-gray-600",
                     ].join(" ")}
                   >
-                    <p className="truncate font-medium">
-                      {getConversationTitle(
-                        conversation
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-500/20 text-sm font-semibold text-indigo-200">
+                      {getInitials(
+                        getConversationTitle(
+                          conversation
+                        )
                       )}
-                    </p>
-                    <p className="mt-1 text-xs text-gray-400">
-                      {conversation.type ===
-                      "group"
-                        ? `${conversation.members.length} members`
-                        : "Direct message"}
-                    </p>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium">
+                        {getConversationTitle(
+                          conversation
+                        )}
+                      </p>
+                      <p className="mt-1 truncate text-xs text-gray-400">
+                        {conversation.type ===
+                        "group"
+                          ? `${conversation.members.length} members`
+                          : "Direct message"}
+                      </p>
+                    </div>
                   </button>
                 )
               )}
@@ -722,20 +757,29 @@ export default function ChatPage() {
           <main className="flex min-h-0 flex-col rounded-lg border border-gray-800 bg-[#111827]">
             {activeConversation ? (
               <>
-                <div className="border-b border-gray-800 p-4">
-                  <h2 className="text-xl font-semibold">
-                    {getConversationTitle(
-                      activeConversation
-                    )}
-                  </h2>
-                  <p className="text-sm text-gray-400">
-                    {activeConversation.members
-                      .map(
-                        (member) =>
-                          member.name
+                <div className="flex items-center gap-3 border-b border-gray-800 p-4">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 font-semibold text-emerald-100">
+                    {getInitials(
+                      getConversationTitle(
+                        activeConversation
                       )
-                      .join(", ")}
-                  </p>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="truncate text-xl font-semibold">
+                      {getConversationTitle(
+                        activeConversation
+                      )}
+                    </h2>
+                    <p className="truncate text-sm text-gray-400">
+                      {activeConversation.members
+                        .map(
+                          (member) =>
+                            member.name
+                        )
+                        .join(", ")}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
@@ -758,18 +802,26 @@ export default function ChatPage() {
                           }`}
                         >
                           <div
-                            className={`max-w-[72%] rounded-lg px-3 py-2 ${
+                            className={[
+                              "max-w-[78%] rounded-lg px-3 py-2 shadow-sm",
                               isMine
                                 ? "bg-indigo-600"
-                                : "bg-gray-800"
-                            }`}
+                                : "bg-gray-800",
+                            ].join(" ")}
                           >
-                            <p className="mb-1 text-xs text-white/70">
-                              {
-                                message.sender
-                                  ?.name
-                              }
-                            </p>
+                            <div className="mb-1 flex items-center justify-between gap-3 text-xs text-white/70">
+                              <span className="truncate">
+                                {
+                                  message.sender
+                                    ?.name
+                                }
+                              </span>
+                              <span className="shrink-0">
+                                {formatMessageTime(
+                                  message.createdAt
+                                )}
+                              </span>
+                            </div>
 
                             {message.type ===
                             "text" ? (
@@ -785,7 +837,7 @@ export default function ChatPage() {
                               "photo" &&
                             message.payload
                               .dataUrl ? (
-                              <img
+                              <Image
                                 src={
                                   message.payload
                                     .dataUrl
@@ -795,7 +847,10 @@ export default function ChatPage() {
                                     .fileName ||
                                   "Shared photo"
                                 }
-                                className="max-h-72 rounded object-contain"
+                                width={420}
+                                height={280}
+                                unoptimized
+                                className="max-h-72 w-auto rounded object-contain"
                               />
                             ) : null}
 

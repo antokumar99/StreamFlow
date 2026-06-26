@@ -1,185 +1,281 @@
+"use client";
+
+import {
+  useEffect,
+  useState,
+} from "react";
+import { useRouter } from "next/navigation";
+
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import Link from "next/link";
+import api from "@/lib/axios";
 
-const actions = [
-  {
-    title: "Start New Meeting",
-    description:
-      "Create instant video meetings with your team.",
-    icon: "🎥",
-    href: "/meeting/new",
-  },
-
-  {
-    title: "Join Meeting",
-    description:
-      "Join using room ID or invitation link.",
-    icon: "🚀",
-    href: "/meeting/join",
-  },
-
-  {
-    title: "Audio Call",
-    description:
-      "Start lightweight voice conversations.",
-    icon: "🎧",
-    href: "/audio",
-  },
-
-  {
-    title: "Start Chat",
-    description:
-      "Send messages and collaborate instantly.",
-    icon: "💬",
-    href: "/chat",
-  },
-];
+interface MeetingStats {
+  totalMeetings: number;
+  totalHours: number;
+  uniquePeople: number;
+  audioCalls: number;
+  videoCalls: number;
+  mostCalled?: {
+    name: string;
+    calls: number;
+  } | null;
+}
 
 export default function HomePage() {
+  const router = useRouter();
+  const [meetingLink, setMeetingLink] =
+    useState("");
+  const [loadingType, setLoadingType] =
+    useState<
+      "video" | "audio" | null
+    >(null);
+  const [stats, setStats] =
+    useState<MeetingStats | null>(
+      null
+    );
+
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const response =
+          await api.get(
+            "/meetings/stats"
+          );
+        setStats(
+          response.data.stats
+        );
+      } catch (error) {
+        console.error(
+          "Failed to load home stats:",
+          error
+        );
+      }
+    };
+
+    loadStats();
+  }, []);
+
+  const createCall = async (
+    callType: "video" | "audio"
+  ) => {
+    setLoadingType(callType);
+
+    try {
+      const response =
+        await api.post(
+          "/meetings",
+          {
+            callType,
+          }
+        );
+      const roomId =
+        response.data.meeting.roomId;
+
+      router.push(
+        `/meeting/${roomId}${
+          callType === "audio"
+            ? "?type=audio"
+            : ""
+        }`
+      );
+    } finally {
+      setLoadingType(null);
+    }
+  };
+
+  const joinCall = () => {
+    const value =
+      meetingLink.trim();
+
+    if (!value) return;
+
+    const roomFromLink =
+      value.match(
+        /\/meeting\/([^/?#]+)/
+      )?.[1];
+    const queryFromLink =
+      value.includes(
+        "type=audio"
+      )
+        ? "?type=audio"
+        : "";
+
+    router.push(
+      `/meeting/${
+        roomFromLink || value
+      }${queryFromLink}`
+    );
+  };
+
   return (
     <ProtectedRoute>
-    <main className="min-h-screen bg-[#0b0f19] text-white">
-      {/* ================= NAVBAR ================= */}
-{/* 
-      <header className="h-16 border-b border-gray-800 flex items-center justify-between px-6 bg-[#111827]">
-        <div>
-          <h1 className="text-2xl font-bold text-indigo-500">
-            StreamFlow
-          </h1>
-        </div>
+      <main className="min-h-screen bg-[#0b0f19] text-white">
+        <section className="px-6 py-10 lg:px-12">
+          <div className="mx-auto max-w-7xl space-y-10">
+            <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
+              <div>
+                <h1 className="text-4xl font-bold leading-tight md:text-5xl">
+                  StreamFlow
+                </h1>
 
-        <div className="flex items-center gap-4">
-          <button className="glass px-4 py-2">
-            Notifications
-          </button>
-
-          <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center font-bold">
-            A
-          </div>
-        </div>
-      </header> */}
-
-      {/* ================= HERO ================= */}
-
-      <section className="px-6 lg:px-12 py-14">
-        <div className="max-w-7xl mx-auto">
-          <div>
-            <h1 className="text-5xl font-bold leading-tight">
-              Welcome to{" "}
-              <span className="text-indigo-500">
-                StreamFlow
-              </span>
-            </h1>
-
-            <p className="text-gray-400 text-lg mt-5 max-w-2xl">
-              Collaborate with your team using
-              AI-powered meetings, chat, and
-              real-time communication tools.
-            </p>
-          </div>
-
-          {/* ACTION CARDS */}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mt-16">
-            {actions.map((action, index) => (
-              <Link
-                key={index}
-                href={action.href}
-                className="glass p-8 rounded-3xl hover:border-indigo-500 transition group"
-              >
-                <div className="text-5xl mb-6">
-                  {action.icon}
-                </div>
-
-                <h2 className="text-2xl font-semibold group-hover:text-indigo-400 transition">
-                  {action.title}
-                </h2>
-
-                <p className="text-gray-400 mt-4 leading-relaxed">
-                  {action.description}
+                <p className="mt-4 max-w-2xl text-lg text-gray-400">
+                  Start a room, join from an invite link, or switch into an audio-first call.
                 </p>
-              </Link>
-            ))}
-          </div>
-
-          {/* QUICK INFO */}
-
-          <div className="grid md:grid-cols-3 gap-6 mt-20">
-            <div className="glass p-6 rounded-3xl">
-              <h3 className="text-3xl font-bold">
-                24
-              </h3>
-
-              <p className="text-gray-400 mt-2">
-                Meetings This Month
-              </p>
-            </div>
-
-            <div className="glass p-6 rounded-3xl">
-              <h3 className="text-3xl font-bold">
-                12h
-              </h3>
-
-              <p className="text-gray-400 mt-2">
-                Collaboration Time
-              </p>
-            </div>
-
-            <div className="glass p-6 rounded-3xl">
-              <h3 className="text-3xl font-bold">
-                AI
-              </h3>
-
-              <p className="text-gray-400 mt-2">
-                Smart Summaries Enabled
-              </p>
-            </div>
-          </div>
-
-          {/* RECENT ACTIVITY */}
-
-          <div className="mt-20">
-            <h2 className="text-3xl font-bold mb-8">
-              Recent Activity
-            </h2>
-
-            <div className="space-y-4">
-              <div className="glass p-5 rounded-2xl flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold">
-                    Team Sync Meeting
-                  </h3>
-
-                  <p className="text-gray-400 text-sm mt-1">
-                    Yesterday • 8 Participants
-                  </p>
-                </div>
-
-                <button className="btn-primary">
-                  View
-                </button>
               </div>
 
-              <div className="glass p-5 rounded-2xl flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold">
-                    Product Planning
-                  </h3>
+              <div className="rounded-lg border border-gray-800 bg-[#111827] p-4">
+                <label className="text-sm text-gray-400">
+                  Join with room ID or meeting link
+                </label>
 
-                  <p className="text-gray-400 text-sm mt-1">
-                    Monday • AI Summary Generated
-                  </p>
+                <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+                  <input
+                    value={meetingLink}
+                    onChange={(event) =>
+                      setMeetingLink(
+                        event.target.value
+                      )
+                    }
+                    onKeyDown={(event) => {
+                      if (
+                        event.key ===
+                        "Enter"
+                      ) {
+                        joinCall();
+                      }
+                    }}
+                    placeholder="Paste invite link"
+                    className="min-w-0 flex-1 rounded border border-gray-700 bg-[#0b0f19] px-3 py-3 outline-none focus:border-indigo-400"
+                  />
+
+                  <button
+                    onClick={joinCall}
+                    className="rounded bg-emerald-600 px-5 py-3 font-medium hover:bg-emerald-700"
+                  >
+                    Join
+                  </button>
                 </div>
+              </div>
+            </div>
 
-                <button className="btn-primary">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <button
+                onClick={() =>
+                  createCall("video")
+                }
+                className="rounded-lg border border-gray-800 bg-[#111827] p-6 text-left transition hover:border-indigo-400"
+              >
+                <p className="text-sm text-gray-400">
+                  Video
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold">
+                  Create video call
+                </h2>
+                <p className="mt-3 text-gray-400">
+                  Opens a camera-on meeting room with invite sharing.
+                </p>
+                <span className="mt-5 inline-block rounded bg-indigo-600 px-4 py-2 text-sm">
+                  {loadingType ===
+                  "video"
+                    ? "Creating..."
+                    : "Start"}
+                </span>
+              </button>
+
+              <button
+                onClick={() =>
+                  createCall("audio")
+                }
+                className="rounded-lg border border-gray-800 bg-[#111827] p-6 text-left transition hover:border-cyan-400"
+              >
+                <p className="text-sm text-gray-400">
+                  Audio
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold">
+                  Create audio call
+                </h2>
+                <p className="mt-3 text-gray-400">
+                  Starts voice-first, with video available when needed.
+                </p>
+                <span className="mt-5 inline-block rounded bg-cyan-600 px-4 py-2 text-sm">
+                  {loadingType ===
+                  "audio"
+                    ? "Creating..."
+                    : "Start"}
+                </span>
+              </button>
+
+              <button
+                onClick={() =>
+                  router.push("/chat")
+                }
+                className="rounded-lg border border-gray-800 bg-[#111827] p-6 text-left transition hover:border-amber-400"
+              >
+                <p className="text-sm text-gray-400">
+                  Chat
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold">
+                  Open messages
+                </h2>
+                <p className="mt-3 text-gray-400">
+                  Continue direct and group conversations.
+                </p>
+                <span className="mt-5 inline-block rounded bg-amber-600 px-4 py-2 text-sm">
                   Open
-                </button>
+                </span>
+              </button>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-4">
+              <div className="rounded-lg border border-gray-800 bg-[#111827] p-5">
+                <p className="text-sm text-gray-400">
+                  Meetings
+                </p>
+                <h3 className="mt-2 text-3xl font-bold">
+                  {stats?.totalMeetings ??
+                    0}
+                </h3>
+              </div>
+
+              <div className="rounded-lg border border-gray-800 bg-[#111827] p-5">
+                <p className="text-sm text-gray-400">
+                  Hours
+                </p>
+                <h3 className="mt-2 text-3xl font-bold">
+                  {stats?.totalHours ??
+                    0}
+                  h
+                </h3>
+              </div>
+
+              <div className="rounded-lg border border-gray-800 bg-[#111827] p-5">
+                <p className="text-sm text-gray-400">
+                  Call partners
+                </p>
+                <h3 className="mt-2 text-3xl font-bold">
+                  {stats?.uniquePeople ??
+                    0}
+                </h3>
+              </div>
+
+              <div className="rounded-lg border border-gray-800 bg-[#111827] p-5">
+                <p className="text-sm text-gray-400">
+                  Most called
+                </p>
+                <h3 className="mt-2 truncate text-2xl font-bold">
+                  {stats?.mostCalled?.name ||
+                    "None yet"}
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  {stats?.mostCalled
+                    ? `${stats.mostCalled.calls} calls`
+                    : `${stats?.videoCalls ?? 0} video, ${stats?.audioCalls ?? 0} audio`}
+                </p>
               </div>
             </div>
           </div>
-        </div>
-      </section>
-    </main>
+        </section>
+      </main>
     </ProtectedRoute>
   );
 }
