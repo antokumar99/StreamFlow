@@ -13,6 +13,9 @@ export interface IMessage extends Document {
   iv: string;
   authTag: string;
   readBy: mongoose.Types.ObjectId[];
+  deliveredTo: mongoose.Types.ObjectId[];
+  editedAt?: Date;
+  isDeleted: boolean;
 }
 
 const messageSchema =
@@ -61,6 +64,22 @@ const messageSchema =
           ref: "User",
         },
       ],
+
+      deliveredTo: [
+        {
+          type: Schema.Types.ObjectId,
+          ref: "User",
+        },
+      ],
+
+      editedAt: {
+        type: Date,
+      },
+
+      isDeleted: {
+        type: Boolean,
+        default: false,
+      },
     },
     {
       timestamps: true,

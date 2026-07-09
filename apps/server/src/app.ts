@@ -32,7 +32,9 @@ app.use("/api/chats", chatRoutes);
 app.use("/api/meetings", meetingRoutes);
 app.use("/api/notifications", notificationRoutes);
 
-app.use((err: any, req: express.Request, res: express.Response) => {
+// Error handlers must declare all four parameters, otherwise
+// Express treats this as a regular middleware.
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
     console.error(err.stack);
     res.status(500).send("Something went wrong!");
 });

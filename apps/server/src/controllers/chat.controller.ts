@@ -27,17 +27,57 @@ const serializeMessage = async (
     sender:
       populated.senderId,
     type: populated.type,
-    payload: decryptPayload(
-      populated.encryptedPayload,
-      populated.iv,
-      populated.authTag
-    ),
+    payload: populated.isDeleted
+      ? {}
+      : decryptPayload(
+          populated.encryptedPayload,
+          populated.iv,
+          populated.authTag
+        ),
     readBy: populated.readBy,
+    deliveredTo:
+      populated.deliveredTo,
+    editedAt: populated.editedAt,
+    isDeleted: Boolean(
+      populated.isDeleted
+    ),
     createdAt:
       populated.get("createdAt"),
     updatedAt:
       populated.get("updatedAt"),
   };
+};
+
+const getMessagePreview = (
+  message: IMessage
+): string => {
+  if (message.isDeleted) {
+    return "Message deleted";
+  }
+
+  if (message.type === "photo") {
+    return "📷 Photo";
+  }
+
+  if (message.type === "voice") {
+    return "🎤 Voice message";
+  }
+
+  try {
+    const payload = decryptPayload<{
+      text?: string;
+    }>(
+      message.encryptedPayload,
+      message.iv,
+      message.authTag
+    );
+
+    return (
+      payload.text || ""
+    ).slice(0, 80);
+  } catch {
+    return "";
+  }
 };
 
 export const searchUsers = async (
@@ -226,9 +266,57 @@ export const getConversations =
             "name email avatar"
           );
 
+      const withPreviews =
+        await Promise.all(
+          conversations.map(
+            async (conversation) => {
+              const lastMessage =
+                await Message.findOne({
+                  conversationId:
+                    conversation._id,
+                })
+                  .sort({
+                    createdAt: -1,
+                  })
+                  .populate(
+                    "senderId",
+                    "name"
+                  );
+
+              return {
+                ...conversation.toObject(),
+                lastMessage: lastMessage
+                  ? {
+                      preview:
+                        getMessagePreview(
+                          lastMessage
+                        ),
+                      senderId: String(
+                        lastMessage
+                          .senderId
+                          ?._id ??
+                          lastMessage.senderId
+                      ),
+                      senderName:
+                        (
+                          lastMessage.senderId as unknown as {
+                            name?: string;
+                          }
+                        )?.name || "",
+                      createdAt:
+                        lastMessage.get(
+                          "createdAt"
+                        ),
+                    }
+                  : null,
+              };
+            }
+          )
+        );
+
       res.status(200).json({
         success: true,
-        conversations,
+        conversations: withPreviews,
       });
     } catch (error) {
       console.error(error);
@@ -260,6 +348,47 @@ export const getMessages = async (
       });
 
       return;
+    }
+
+    // Fetching a conversation means its messages reached this
+    // client, so record delivery for everyone else's messages.
+    const undelivered =
+      await Message.updateMany(
+        {
+          conversationId:
+            conversation._id,
+          senderId: {
+            $ne: req.user?._id,
+          },
+          deliveredTo: {
+            $ne: req.user?._id,
+          },
+        },
+        {
+          $addToSet: {
+            deliveredTo:
+              req.user?._id,
+          },
+        }
+      );
+
+    if (undelivered.modifiedCount > 0) {
+      req.app
+        .get("io")
+        ?.to(
+          `conversation:${conversation._id}`
+        )
+        .emit(
+          "conversation-delivered",
+          {
+            conversationId: String(
+              conversation._id
+            ),
+            userId: String(
+              req.user?._id
+            ),
+          }
+        );
     }
 
     const messages =
