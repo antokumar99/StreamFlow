@@ -3,6 +3,7 @@ import {
   clearAuthToken,
   setAuthToken,
 } from "@/lib/authToken";
+import { socket } from "@/lib/socket";
 
 interface User{
     _id: string;
@@ -44,6 +45,10 @@ export const useAuthStore =
 
     logout: () => {
       clearAuthToken();
+
+      if (socket.connected) {
+        socket.disconnect();
+      }
 
       set({
         user: null,

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import NotificationProvider from "@/components/notifications/NotificationProvider";
 // import ThemeProvider from "@/providers/ThemeProvider";
 
 const geistSans = Geist({
@@ -32,9 +33,8 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`} data-scroll-behavior="smooth"
     >
       <body className="min-h-full flex flex-col">
-        
-          {children}
-       
+        {children}
+        <NotificationProvider />
       </body>
     </html>
   );

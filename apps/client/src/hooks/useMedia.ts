@@ -31,27 +31,70 @@ export const useMedia = (
   const [videoEnabled, setVideoEnabled] =
     useState(initialVideo);
 
-    useEffect(() => {
+  const [mediaError, setMediaError] =
+    useState("");
+
+  useEffect(() => {
     const getMedia = async () => {
+      // Try full media first, then fall back so a missing/blocked
+      // camera or mic never prevents joining the meeting.
       try {
-        const mediaStream = await navigator.mediaDevices.getUserMedia(
-          {
-            video: initialVideo,
-            audio: true,
-          }
-        );
+        const mediaStream =
+          await navigator.mediaDevices.getUserMedia(
+            {
+              video: initialVideo,
+              audio: true,
+            }
+          );
 
         cameraStreamRef.current =
           mediaStream;
 
         setStream(mediaStream);
+        return;
       } catch (error) {
         console.log(error);
       }
+
+      if (initialVideo) {
+        try {
+          const audioStream =
+            await navigator.mediaDevices.getUserMedia(
+              {
+                audio: true,
+              }
+            );
+
+          cameraStreamRef.current =
+            audioStream;
+
+          setStream(audioStream);
+          setVideoEnabled(false);
+          setMediaError(
+            "Camera is unavailable, joined with microphone only."
+          );
+          return;
+        } catch (error) {
+          console.log(error);
+        }
+      }
+
+      const emptyStream =
+        new MediaStream();
+
+      cameraStreamRef.current =
+        emptyStream;
+
+      setStream(emptyStream);
+      setAudioEnabled(false);
+      setVideoEnabled(false);
+      setMediaError(
+        "Camera and microphone are unavailable. You joined as a viewer."
+      );
     };
 
     getMedia();
-    }, [initialVideo]);
+  }, [initialVideo]);
 
   const toggleAudio = () => {
     if (!stream) return;
@@ -204,6 +247,7 @@ export const useMedia = (
     stream,
     audioEnabled,
     videoEnabled,
+    mediaError,
     toggleAudio,
     toggleVideo,
     startScreenShare,

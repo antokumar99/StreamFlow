@@ -1,25 +1,29 @@
 "use client";
+
+import { useRouter } from "next/navigation";
+import {
+  FormEvent,
+  useRef,
+  useState,
+} from "react";
+
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import DashboardStats from "@/components/dashboard/DashboardStats";
 import QuickActions from "@/components/dashboard/QuickActions";
 import RecentMeetings from "@/components/dashboard/RecentMeetings";
-
-
-import { useRouter } from "next/navigation";
-import {
-  useRef,
-  useState,
-} from "react";
+import { useAuth } from "@/hooks/useAuth";
 import api from "@/lib/axios";
 
-
-
 export default function DashboardPage() {
-
   const router = useRouter();
+  const { user } = useAuth();
+
   const [loading, setLoading] =
     useState(false);
-  const [roomId, setRoomId] = useState("");
+  const [roomId, setRoomId] =
+    useState("");
+  const [joinError, setJoinError] =
+    useState("");
   const joinInputRef =
     useRef<HTMLInputElement | null>(
       null
@@ -28,15 +32,17 @@ export default function DashboardPage() {
   const handleCreateMeeting = async (
     callType: "video" | "audio" = "video"
   ) => {
+    if (loading) return;
+
     try {
       setLoading(true);
-      const response =
-        await api.post(
-          "/meetings",
-          {
-            callType,
-          }
-        );
+
+      const response = await api.post(
+        "/meetings",
+        {
+          callType,
+        }
+      );
       const newRoomId =
         response.data.meeting.roomId;
 
@@ -48,97 +54,139 @@ export default function DashboardPage() {
         }`
       );
     } catch (error) {
-      console.error("Error creating meeting:", error);
-    } finally {
+      console.error(
+        "Error creating meeting:",
+        error
+      );
       setLoading(false);
     }
   };
 
-  const joinMeeting = () => {
-    const value =
-      roomId.trim();
+  const joinMeeting = (
+    event?: FormEvent
+  ) => {
+    event?.preventDefault();
+
+    const value = roomId.trim();
 
     if (!value) {
-      alert("Please enter a valid Room ID");
+      setJoinError(
+        "Enter a room ID or paste an invite link."
+      );
+      joinInputRef.current?.focus();
       return;
     }
 
-    const roomFromLink =
-      value.match(
-        /\/meeting\/([^/?#]+)/
-      )?.[1];
+    setJoinError("");
+
+    const roomFromLink = value.match(
+      /\/meeting\/([^/?#]+)/
+    )?.[1];
+    const audioSuffix =
+      value.includes("type=audio")
+        ? "?type=audio"
+        : "";
 
     router.push(
-      `/meeting/${roomFromLink || value}`
+      `/meeting/${roomFromLink || value}${audioSuffix}`
     );
   };
 
   return (
-
     <ProtectedRoute>
-    <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-4xl font-bold">
-          Dashboard
-        </h1>
+      <div className="mx-auto max-w-6xl space-y-8">
+        {/* Header */}
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold sm:text-4xl">
+              {user
+                ? `Welcome back, ${user.name.split(" ")[0]}`
+                : "Dashboard"}
+            </h1>
 
-        <p className="text-gray-400 mt-2">
-          Welcome to StreamFlow
-        </p>
+            <p className="mt-2 text-gray-400">
+              Start a meeting or join one
+              with a room ID.
+            </p>
+          </div>
 
-        <div className="mt-4 flex items-center space-x-4">
-          <button
-            onClick={() =>
-              handleCreateMeeting(
-                "video"
-              )
-            }
-            className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-400 transition">
-            {loading ? "Creating..." : "New Meeting"}
-          </button>
-        
-          <input
-            type="text"
-            placeholder="Enter Room ID to Join"
-            value={roomId}
-            ref={joinInputRef}
-            onChange={(e) => setRoomId(e.target.value)}
-            className="mt-4 p-2 border rounded w-full max-w-sm"
-          />  
-          <button
-            onClick={joinMeeting}
-            className="mt-2 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-400 transition">
-            Join Meeting
-          </button>
+          <div className="w-full lg:max-w-xl">
+            <form
+              onSubmit={joinMeeting}
+              className="flex flex-col gap-3 sm:flex-row"
+            >
+              <button
+                type="button"
+                onClick={() =>
+                  handleCreateMeeting(
+                    "video"
+                  )
+                }
+                disabled={loading}
+                className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 font-semibold transition hover:bg-indigo-500 disabled:opacity-60"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M23 7l-7 5 7 5V7z" />
+                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                </svg>
+                {loading
+                  ? "Creating..."
+                  : "New Meeting"}
+              </button>
+
+              <div className="flex min-w-0 flex-1 gap-2">
+                <input
+                  type="text"
+                  placeholder="Room ID or invite link"
+                  value={roomId}
+                  ref={joinInputRef}
+                  onChange={(e) => {
+                    setRoomId(
+                      e.target.value
+                    );
+                    if (joinError) {
+                      setJoinError("");
+                    }
+                  }}
+                  className="min-w-0 flex-1 rounded-xl"
+                />
+
+                <button
+                  type="submit"
+                  className="shrink-0 rounded-xl bg-emerald-600 px-5 py-3 font-semibold transition hover:bg-emerald-500"
+                >
+                  Join
+                </button>
+              </div>
+            </form>
+
+            {joinError ? (
+              <p className="mt-2 text-sm text-red-400">
+                {joinError}
+              </p>
+            ) : null}
+          </div>
         </div>
 
-        </div>
-
-      {/* Stats */}
+        {/* Stats */}
         <DashboardStats />
 
-      {/* Quick Actions */}
-      <QuickActions
-        onCreateVideo={() =>
-          handleCreateMeeting(
-            "video"
-          )
-        }
-        onCreateAudio={() =>
-          handleCreateMeeting(
-            "audio"
-          )
-        }
-        onFocusJoin={() =>
-          joinInputRef.current?.focus()
-        }
-      />
+        {/* Quick Actions */}
+        <QuickActions
+          onCreateVideo={() =>
+            handleCreateMeeting("video")
+          }
+          onCreateAudio={() =>
+            handleCreateMeeting("audio")
+          }
+          onFocusJoin={() =>
+            joinInputRef.current?.focus()
+          }
+        />
 
-      {/* Meetings */}
-      <RecentMeetings />
-    </div>
+        {/* Meetings */}
+        <RecentMeetings />
+      </div>
     </ProtectedRoute>
-
   );
 }
